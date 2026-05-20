@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material3.Button
@@ -47,26 +48,38 @@ import com.example.lab_10.data.SerieApiService
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import com.example.lab_10.bookshelf.ui.BookshelfScreen
+import com.example.lab_10.rutinas.network.RutinasApiService
+import com.example.lab_10.rutinas.data.RutinasRepository
+import com.example.lab_10.rutinas.ui.RutinasViewModel
+import com.example.lab_10.rutinas.ui.RutinasListadoScreen
+import com.example.lab_10.rutinas.ui.RutinaFormularioScreen
+import androidx.compose.runtime.remember
 
 @Composable
 fun SeriesApp() {
     val urlBase = "http://161.132.49.139:8004/"
     val retrofit = Retrofit.Builder().baseUrl(urlBase)
         .addConverterFactory(GsonConverterFactory.create()).build()
+
     val servicio = retrofit.create(SerieApiService::class.java)
+
+    val apiRutinas = retrofit.create(RutinasApiService::class.java)
+    val repositorioRutinas = remember { RutinasRepository(apiRutinas) }
+    val viewModelRutinas = remember { RutinasViewModel(repositorioRutinas) }
+
     val navController = rememberNavController()
 
     Scaffold(
         modifier = Modifier.padding(top = 40.dp),
         topBar =    { BarraSuperior() },
         bottomBar = { BarraInferior(navController) },
-        floatingActionButton = { BotonFAB(navController, servicio) },
-        content =   { paddingValues -> Contenido(paddingValues, navController, servicio) }
+        floatingActionButton = { BotonFAB(navController, servicio, viewModelRutinas) },
+        content =   { paddingValues -> Contenido(paddingValues, navController, servicio, repositorioRutinas, viewModelRutinas) }
     )
 }
 
 @Composable
-fun BotonFAB(navController: NavHostController, servicio: SerieApiService) {
+fun BotonFAB(navController: NavHostController, servicio: SerieApiService, viewModelRutinas: RutinasViewModel) {
     val cbeState by navController.currentBackStackEntryAsState()
     val rutaActual = cbeState?.destination?.route
     if (rutaActual == "series") {
@@ -74,6 +87,18 @@ fun BotonFAB(navController: NavHostController, servicio: SerieApiService) {
             containerColor = Color(0xFF2196F3),
             contentColor = Color.White,
             onClick = { navController.navigate("serieNuevo") }
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = "Add"
+            )
+        }
+    } else if (rutaActual == "rutinas") {
+        FloatingActionButton(
+            containerColor = Color(0xFF4CAF50),
+            contentColor = Color.White,
+            // AQUÍ LLAMA AL MISMO NOMBRE
+            onClick = { navController.navigate("rutinaEditar/0") }
         ) {
             Icon(
                 imageVector = Icons.Filled.Add,
@@ -124,7 +149,9 @@ fun BarraInferior(navController: NavHostController) {
 fun Contenido(
     pv: PaddingValues,
     navController: NavHostController,
-    servicio: SerieApiService
+    servicio: SerieApiService,
+    reposioRutinas: RutinasRepository,
+    viewModelRutinas: RutinasViewModel
 ) {
     Box(
         modifier = Modifier
@@ -137,11 +164,28 @@ fun Contenido(
         ) {
             composable("inicio") { ScreenInicio(navController) }
             composable("series") { ContenidoSeriesListado(navController, servicio) }
+            composable("bookshelf") { BookshelfScreen() }
+
+            composable("rutinas") {
+                RutinasListadoScreen(navController, viewModelRutinas)
+            }
+
+            // AQUI ESTABA EL ERROR: Cambié "rutinaFormulario/{id}" por "rutinaEditar/{id}"
+            composable(
+                route = "rutinaEditar/{id}",
+                arguments = listOf(navArgument("id") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getInt("id") ?: 0
+                RutinaFormularioScreen(
+                    navController = navController,
+                    repository = reposioRutinas,
+                    viewModel = viewModelRutinas,
+                    rutinaId = id
+                )
+            }
+
             composable("serieNuevo") {
                 ContenidoSerieEditar(navController, servicio, 0)
-            }
-            composable("bookshelf") {
-                BookshelfScreen()
             }
             composable("serieVer/{id}", arguments = listOf(
                 navArgument("id") { type = NavType.IntType } )
@@ -174,7 +218,6 @@ fun ScreenInicio(navController: NavHostController) {
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        // Botones de acceso
         Button(
             onClick = { navController.navigate("series") },
             modifier = Modifier
@@ -186,7 +229,7 @@ fun ScreenInicio(navController: NavHostController) {
             Spacer(modifier = Modifier.width(8.dp))
             Text(text = "Ver Catálogo de Series", fontSize = 16.sp)
         }
-        // Dentro de tu Column, debajo del botón de Series:
+
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
@@ -194,11 +237,25 @@ fun ScreenInicio(navController: NavHostController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE64A19)) // Un tono naranja/rojo oscuro para diferenciar
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE64A19))
         ) {
-            Icon(imageVector = Icons.Outlined.Build, contentDescription = null) // O usa un ícono de libro si lo prefieres
+            Icon(imageVector = Icons.Outlined.Build, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text(text = "Proyecto Bookshelf", fontSize = 16.sp)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = { navController.navigate("rutinas") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+        ) {
+            Icon(imageVector = Icons.Outlined.DateRange, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = "Agenda de Rutinas TEA", fontSize = 16.sp)
         }
     }
 }
