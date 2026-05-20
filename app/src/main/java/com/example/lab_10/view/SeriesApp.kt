@@ -1,13 +1,23 @@
 package com.example.lab_10.view
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -20,10 +30,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -34,6 +46,7 @@ import androidx.navigation.navArgument
 import com.example.lab_10.data.SerieApiService
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import com.example.lab_10.bookshelf.ui.BookshelfScreen
 
 @Composable
 fun SeriesApp() {
@@ -44,7 +57,7 @@ fun SeriesApp() {
     val navController = rememberNavController()
 
     Scaffold(
-        modifier = Modifier.padding(top=40.dp),
+        modifier = Modifier.padding(top = 40.dp),
         topBar =    { BarraSuperior() },
         bottomBar = { BarraInferior(navController) },
         floatingActionButton = { BotonFAB(navController, servicio) },
@@ -58,7 +71,7 @@ fun BotonFAB(navController: NavHostController, servicio: SerieApiService) {
     val rutaActual = cbeState?.destination?.route
     if (rutaActual == "series") {
         FloatingActionButton(
-            containerColor = Color.Magenta,
+            containerColor = Color(0xFF2196F3),
             contentColor = Color.White,
             onClick = { navController.navigate("serieNuevo") }
         ) {
@@ -120,20 +133,23 @@ fun Contenido(
     ) {
         NavHost(
             navController = navController,
-            startDestination = "inicio" // Ruta de inicio
+            startDestination = "inicio"
         ) {
-            composable("inicio") { ScreenInicio() }
+            composable("inicio") { ScreenInicio(navController) }
             composable("series") { ContenidoSeriesListado(navController, servicio) }
             composable("serieNuevo") {
-                ContenidoSerieEditar(navController, servicio, 0 )
+                ContenidoSerieEditar(navController, servicio, 0)
+            }
+            composable("bookshelf") {
+                BookshelfScreen()
             }
             composable("serieVer/{id}", arguments = listOf(
-                navArgument("id") { type = NavType.IntType} )
+                navArgument("id") { type = NavType.IntType } )
             ) {
                 ContenidoSerieEditar(navController, servicio, it.arguments!!.getInt("id"))
             }
             composable("serieDel/{id}", arguments = listOf(
-                navArgument("id") { type = NavType.IntType} )
+                navArgument("id") { type = NavType.IntType } )
             ) {
                 ContenidoSerieEliminar(navController, servicio, it.arguments!!.getInt("id"))
             }
@@ -142,15 +158,47 @@ fun Contenido(
 }
 
 @Composable
-fun ScreenInicio() {
-    androidx.compose.foundation.layout.Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = androidx.compose.ui.Alignment.Center
+fun ScreenInicio(navController: NavHostController) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "¡Bienvenido a Series App!",
+            text = "Bienvenido",
             style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF2196F3),
+            modifier = Modifier.padding(bottom = 8.dp)
         )
+
+        // Botones de acceso
+        Button(
+            onClick = { navController.navigate("series") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+        ) {
+            Icon(imageVector = Icons.Outlined.Favorite, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = "Ver Catálogo de Series", fontSize = 16.sp)
+        }
+        // Dentro de tu Column, debajo del botón de Series:
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = { navController.navigate("bookshelf") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE64A19)) // Un tono naranja/rojo oscuro para diferenciar
+        ) {
+            Icon(imageVector = Icons.Outlined.Build, contentDescription = null) // O usa un ícono de libro si lo prefieres
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = "Proyecto Bookshelf", fontSize = 16.sp)
+        }
     }
 }
